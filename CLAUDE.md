@@ -16,10 +16,10 @@ This is a node package in the IRE agentic bioinformatics workflow framework. It 
 
 ## Development Environment
 
-This node has its own conda environment, declared in `env.yaml`.
+This node has its own conda environment, declared in `envs/env-r-4.3.yaml`.
 
 ```bash
-conda env create -f env.yaml
+conda env create -f envs/env-r-4.3.yaml
 conda activate <env-name>
 
 # Python: use uv inside conda
@@ -32,7 +32,7 @@ conda install -c conda-forge r-base r-essentials
 
 ### Rules
 
-1. Use the node's own env from `env.yaml`
+1. Use the node's own env from `envs/env-r-4.3.yaml`
 2. Python packages via `uv pip install`
 3. R packages prefer `conda install -c conda-forge r-<package>`
 4. No hardcoded secrets
