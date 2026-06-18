@@ -19,7 +19,7 @@ This is a node package in the IRE agentic bioinformatics workflow framework. It 
 This node has its own conda environment, declared in `envs/env-r-4.3.yaml`.
 
 ```bash
-conda env create -f envs/env-r-4.3.yaml
+conda env create -f envs/env-r-4.3.yaml -p ./env
 conda activate <env-name>
 
 # Python: use uv inside conda
