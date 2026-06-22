@@ -145,17 +145,19 @@ The `scripts/output_validation.R` script SHALL verify that output files have exp
 
 ### Requirement: Node handles errors with structured exceptions
 
-The node SHALL declare 13 structured exception codes in SKILL.md with `code` (B1-B9, W001-W002, E801-E802), `exit_code`, `pattern`, `nature`, and `action` fields. All exception codes SHALL use consistent category prefixes: B=data, W=write, E=environment.
+The node SHALL wrap DE method dispatch in error handling that emits structured NDJSON exceptions on unexpected Bioconductor failures, and SHALL write `.run_result.json` even on DE analysis failure paths.
 
-#### Scenario: Insufficient DEGs after filtering
+#### Scenario: DE method throws unexpected error
 
-- **WHEN** filtering produces fewer DEGs than `--cutoff`
-- **THEN** the script SHALL emit exception `B2_FEW_DEGS` and exit with code 1
+- **WHEN** a DE method (DESeq2, limma, edgeR, t-test, Wilcoxon) throws an unexpected error during execution
+- **THEN** the script SHALL emit a structured NDJSON exception with level `"exception"` and write `.run_result.json` with `status: "error"`
+- **AND** exit with code 1
 
-#### Scenario: Unsupported species for chromosome plot
+#### Scenario: Consecutive main() calls produce independent results
 
-- **WHEN** `--locate` is provided with a `--tax-id` other than 9606 or 10090
-- **THEN** the script SHALL emit exception `E802_UNSUPPORTED_TAXID` and exit with code 1
+- **WHEN** `main()` is called twice in the same R session
+- **THEN** the second call's `.exceptions` accumulator SHALL contain only exceptions from the second run
+- **AND** the second call's `.run_result.json` SHALL not contain exceptions from the first run
 
 ### Requirement: Node supports edgeR configurable parameters
 
