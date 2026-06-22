@@ -389,6 +389,65 @@ test_that("parse_args() prints help and exits with status 1 on no args", {
 })
 
 # ---------------------------------------------------------------------------
+# End-to-end pipeline
+# ---------------------------------------------------------------------------
+test_that("end-to-end pipeline runs with synthetic data", {
+  source("../../tests/testthat/setup.R")
+  requireNamespace("jsonlite", quietly = TRUE)
+
+  td <- create_test_data()
+  outdir <- file.path(tempdir(), "deg_e2e_test")
+  if (dir.exists(outdir)) unlink(outdir, recursive = TRUE)
+  dir.create(outdir, showWarnings = FALSE)
+
+  # Capture stdout to parse NDJSON
+  tmp_stdout <- file.path(tempdir(), "e2e_stdout.txt")
+
+  exit_code <- system2(
+    "../../env/bin/Rscript",
+    c("../../scripts/main.R",
+      "run",
+      "--mat", td$mat_path,
+      "--map", td$map_path,
+      "--method", "t",
+      "--p-set", "p",
+      "--pvalue", "0.05",
+      "--logfc-cutoff", "0.5",
+      "--cutoff", "1",
+      "--top", "10",
+      "--outdir", outdir),
+    stdout = tmp_stdout,
+    stderr = FALSE
+  )
+
+  # Read NDJSON output
+  lines <- readLines(tmp_stdout)
+  jsons <- lapply(lines, function(l) tryCatch(jsonlite::fromJSON(l), error = function(e) NULL))
+  jsons <- Filter(Negate(is.null), jsons)
+
+  # Find result line
+  result_line <- Find(function(j) !is.null(j$level) && j$level == "result", jsons)
+  expect_true(!is.null(result_line))
+  expect_equal(result_line$status, "success")
+
+  # Check output files exist
+  expect_true(file.exists(file.path(outdir, "Diffanalysis.csv")))
+  expect_true(file.exists(file.path(outdir, "DEGs.csv")))
+  expect_true(file.exists(file.path(outdir, "Volcano.pdf")))
+  expect_true(file.exists(file.path(outdir, "Heatmap.pdf")))
+  expect_true(file.exists(file.path(outdir, ".run_result.json")))
+
+  # Verify .run_result.json
+  rr <- jsonlite::fromJSON(file.path(outdir, ".run_result.json"))
+  expect_equal(rr$node, "deg-analysis")
+  expect_equal(rr$exit_code, 0)
+
+  # Cleanup
+  unlink(outdir, recursive = TRUE)
+  unlink(tmp_stdout)
+})
+
+# ---------------------------------------------------------------------------
 # Clean up
 # ---------------------------------------------------------------------------
 assign(".exceptions", list(), envir = .GlobalEnv)
