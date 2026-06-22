@@ -1,5 +1,5 @@
 ---
-name: deg-analysis
+name: differential-analysis
 description: >
   Differential expression analysis comparing case vs control groups
   from a gene expression matrix. Supports DESeq2, limma, edgeR,
@@ -228,7 +228,7 @@ hardware:
   runtime: "~2-10 minutes depending on method and matrix size"
 ---
 
-# deg-analysis
+# differential-analysis
 
 ## Node Function
 

@@ -1,4 +1,4 @@
-# exceptions.R — Structured exception handling for deg-analysis
+# exceptions.R — Structured exception handling for differential-analysis
 #
 # Categories: B=Data, W=Write, E=Environment
 # All exceptions flow through report_exception_ndjson() for machine-readable output.

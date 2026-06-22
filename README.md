@@ -1,4 +1,4 @@
-# medflow-deg-analysis
+# medflow-differential-analysis
 
 Differential expression analysis (transcriptomics) package in medflow.
 

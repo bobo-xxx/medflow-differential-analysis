@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# main.R — Single entry point for deg-analysis node
+# main.R — Single entry point for differential-analysis node
 #
 # Usage:
 #   Rscript scripts/main.R run --mat expr.csv --map groups.csv --outdir ./output

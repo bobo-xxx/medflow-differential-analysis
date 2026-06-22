@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 This is a node package in the IRE agentic bioinformatics workflow framework. It is a standalone git repository — one repo per node.
 
-**Node:** `deg-analysis`  
+**Node:** `differential-analysis`  
 **Purpose:** Differential expression analysis — case vs control comparison.  
 **Type:** standard node
 

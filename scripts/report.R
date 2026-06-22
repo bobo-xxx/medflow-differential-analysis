@@ -1,4 +1,4 @@
-# report.R — NDJSON reporting helpers for deg-analysis
+# report.R — NDJSON reporting helpers for differential-analysis
 #
 # All output to stdout is valid NDJSON. Each function writes one line.
 # Use report_info() for progress, report_result() for final output,
@@ -75,7 +75,7 @@ write_run_result <- function(out_dir, result, params, exit_code, times) {
   }
 
   obj <- list(
-    node         = "deg-analysis",
+    node         = "differential-analysis",
     subcommand   = if (is.null(params$subcommand)) "unknown" else params$subcommand,
     status       = if (is.null(result$status)) "unknown" else result$status,
     exit_code    = exit_code,

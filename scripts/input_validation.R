@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# input_validation.R — Pre-flight input validation for deg-analysis
+# input_validation.R — Pre-flight input validation for differential-analysis
 #
 # Standalone executable. Validates inputs before running the DE pipeline.
 # Also sourceable by main.R for the validate-input subcommand.

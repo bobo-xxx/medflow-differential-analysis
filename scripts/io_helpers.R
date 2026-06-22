@@ -1,4 +1,4 @@
-# io_helpers.R — File I/O and color utilities for deg-analysis
+# io_helpers.R — File I/O and color utilities for differential-analysis
 #
 # Provides advisory file locking, directory creation, and color mapping.
 

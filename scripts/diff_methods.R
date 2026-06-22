@@ -1,4 +1,4 @@
-# diff_methods.R — Differential expression analysis methods for deg-analysis
+# diff_methods.R — Differential expression analysis methods for differential-analysis
 #
 # Provides four DE analysis functions adapted from original/scripts/diff.R.
 # Each function takes an expression matrix and sample group map, returns

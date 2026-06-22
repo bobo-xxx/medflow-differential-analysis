@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# output_validation.R — Post-hoc output validation for deg-analysis
+# output_validation.R — Post-hoc output validation for differential-analysis
 #
 # Standalone executable. Validates outputs after running the DE pipeline.
 # Also sourceable by main.R for the validate-output subcommand.

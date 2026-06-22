@@ -1,4 +1,4 @@
-# plot_helpers.R — Visualization functions for deg-analysis
+# plot_helpers.R — Visualization functions for differential-analysis
 #
 # Provides volcano plot, heatmap, Venn diagram, and chromosome location plot.
 # Adapted from original/scripts/diff_volcano.R, diff_heatmap.R, diff_venn.R, diff_locate.R.

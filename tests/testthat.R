@@ -1,4 +1,4 @@
-# testthat.R — Test runner for deg-analysis node
+# testthat.R — Test runner for differential-analysis node
 # This is not an R package, so we source test files directly.
 
 library(testthat)

@@ -439,7 +439,7 @@ test_that("end-to-end pipeline runs with synthetic data", {
 
   # Verify .run_result.json
   rr <- jsonlite::fromJSON(file.path(outdir, ".run_result.json"))
-  expect_equal(rr$node, "deg-analysis")
+  expect_equal(rr$node, "differential-analysis")
   expect_equal(rr$exit_code, 0)
 
   # Cleanup

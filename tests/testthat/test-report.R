@@ -141,7 +141,7 @@ test_that("write_run_result() writes .run_result.json to out_dir", {
   expect_true(file.exists(json_path))
 
   obj <- jsonlite::fromJSON(json_path)
-  expect_equal(obj$node, "deg-analysis")
+  expect_equal(obj$node, "differential-analysis")
   expect_equal(obj$subcommand, "run")
   expect_equal(obj$status, "success")
   expect_equal(obj$exit_code, 0)

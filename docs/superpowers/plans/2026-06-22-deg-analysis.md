@@ -1,10 +1,11 @@
 ---
 change: create-node-package
-design-doc: docs/superpowers/specs/2026-06-22-deg-analysis-design.md
+design-doc: docs/superpowers/specs/2026-06-22-differential-analysis-design.md
 base-ref: 1e5d31cd6609ffc348f4701d4024995b706dedfd
+archived-with: 2026-06-22-create-node-package
 ---
 
-# deg-analysis Node Package Implementation Plan
+# differential-analysis Node Package Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
@@ -25,17 +26,18 @@ base-ref: 1e5d31cd6609ffc348f4701d4024995b706dedfd
 - No hardcoded secrets or paths
 - Flat directory layout per node-package.md protocol
 - SKILL.md v2 frontmatter with all 8 required sections
-- Node name in .run_result.json: `deg-analysis`
+- Node name in .run_result.json: `differential-analysis`
 - All parameters declared in SKILL.md frontmatter with bind annotations (upstream/config/static/framework)
 - Exceptions follow exception-contract.md: halt | skip_with_warning | escalate (no retry)
 - No `report_prompt()` in this node (not a gate node; no interactive prompts)
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## File Structure
 
 ```
-deg-analysis/
+differential-analysis/
 ├── SKILL.md                          # [Task 6] Agent contract with v2 YAML frontmatter
 ├── envs/env-r-4.3.yaml               # [Task 1] Conda env with all R/Bioconductor deps
 ├── scripts/
@@ -68,6 +70,7 @@ deg-analysis/
 7. `input_validation.R` (depends on filter_helpers.R for proportion_check)
 8. `output_validation.R` (no internal deps beyond base R)
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 1: Environment Setup
@@ -166,7 +169,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 Create a `create_test_data()` function that generates a synthetic 10-gene x 6-sample count matrix with 3 case + 3 control samples and known fold changes for 2 genes:
 
 ```r
-# setup.R — Synthetic test fixtures for deg-analysis tests
+# setup.R — Synthetic test fixtures for differential-analysis tests
 #
 # Provides create_test_data() which returns a list with:
 #   $mat  — 10-gene x 6-sample count matrix (3 case, 3 control)
@@ -237,6 +240,7 @@ fold changes: GENE1 up ~4x, GENE2 down ~3x, GENE3 subtle ~2x.
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 2: Reporting & Exceptions
@@ -259,10 +263,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 - [x] **Step 1: Write scripts/report.R**
 
-Adapt from reference node `/tmp/medflow-geo-microarray/scripts/report.R`. Remove `report_prompt()` (this node has no interactive prompts per exception-contract.md). The node name in `write_run_result()` is `"deg-analysis"`:
+Adapt from reference node `/tmp/medflow-geo-microarray/scripts/report.R`. Remove `report_prompt()` (this node has no interactive prompts per exception-contract.md). The node name in `write_run_result()` is `"differential-analysis"`:
 
 ```r
-# report.R — NDJSON reporting helpers for deg-analysis
+# report.R — NDJSON reporting helpers for differential-analysis
 #
 # All output to stdout is valid NDJSON. Each function writes one line.
 # Use report_info() for progress, report_result() for final output,
@@ -339,7 +343,7 @@ write_run_result <- function(out_dir, result, params, exit_code, times) {
   }
 
   obj <- list(
-    node         = "deg-analysis",
+    node         = "differential-analysis",
     subcommand   = if (is.null(params$subcommand)) "unknown" else params$subcommand,
     status       = if (is.null(result$status)) "unknown" else result$status,
     exit_code    = exit_code,
@@ -398,7 +402,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 Adapt from reference node. Remove checkpoint and network-specific functions not needed for DEG analysis. Keep `check_environment()`, `report_exception_ndjson()`:
 
 ```r
-# exceptions.R — Structured exception handling for deg-analysis
+# exceptions.R — Structured exception handling for differential-analysis
 #
 # Categories: B=Data, W=Write, E=Environment
 # All exceptions flow through report_exception_ndjson() for machine-readable output.
@@ -510,6 +514,7 @@ Supports dry_run mode for testing.
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 3: Internal Helper Scripts
@@ -545,7 +550,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 Extract the `file_lock` and `create_file_dir` utility functions from the original diff.R, and `color_map` from original diff_venn.R:
 
 ```r
-# io_helpers.R — File I/O and color utilities for deg-analysis
+# io_helpers.R — File I/O and color utilities for differential-analysis
 #
 # Provides advisory file locking, directory creation, and color mapping.
 
@@ -632,7 +637,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 Adapt the 4 DE functions from `original/scripts/diff.R`. Remove the `deal_data()` wrapper (data loading is now handled by main.R). Each function takes a pre-loaded matrix and group map, returns a data.frame with columns: gene_id (from rownames), logFC, Pvalue, Padj, stat (where applicable):
 
 ```r
-# diff_methods.R — Differential expression analysis methods for deg-analysis
+# diff_methods.R — Differential expression analysis methods for differential-analysis
 #
 # Provides four DE analysis functions adapted from original/scripts/diff.R.
 # Each function takes an expression matrix and sample group map, returns
@@ -861,7 +866,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 Adapt `proportion_check` from `original/scripts/diff_check_proportion.py`, and `test_cutoff`/`filter_degs` from `original/scripts/diff_filter.R`:
 
 ```r
-# filter_helpers.R — Proportion check, cutoff testing, DEG filtering for deg-analysis
+# filter_helpers.R — Proportion check, cutoff testing, DEG filtering for differential-analysis
 #
 # All functions report exceptions via report_exception_ndjson() when thresholds
 # are violated, using the structured exception codes from the design doc.
@@ -1048,7 +1053,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 Adapt all four plotting functions from the original scripts. Each function writes a PDF file to disk and reports progress via report_info():
 
 ```r
-# plot_helpers.R — Visualization functions for deg-analysis
+# plot_helpers.R — Visualization functions for differential-analysis
 #
 # Provides volcano plot, heatmap, Venn diagram, and chromosome location plot.
 # Adapted from original/scripts/diff_volcano.R, diff_heatmap.R, diff_venn.R, diff_locate.R.
@@ -1316,6 +1321,7 @@ diff_venn.R, diff_locate.R.
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 4: Validation Scripts
@@ -1345,7 +1351,7 @@ Pattern follows the reference node's `input_validation.R` but adapted for DEG-sp
 ```r
 #!/usr/bin/env Rscript
 #
-# input_validation.R — Pre-flight input validation for deg-analysis
+# input_validation.R — Pre-flight input validation for differential-analysis
 #
 # Standalone executable. Validates inputs before running the DE pipeline.
 # Usage:
@@ -1561,7 +1567,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ```r
 #!/usr/bin/env Rscript
 #
-# output_validation.R — Post-hoc output validation for deg-analysis
+# output_validation.R — Post-hoc output validation for differential-analysis
 #
 # Standalone executable. Validates outputs after running the DE pipeline.
 # Usage:
@@ -1752,6 +1758,7 @@ Returns detailed file_info on success.
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 5: Main Entry Point
@@ -1779,7 +1786,7 @@ Adapt from reference node `main.R`. Source all modules in dependency order. Impl
 ```r
 #!/usr/bin/env Rscript
 #
-# main.R — Single entry point for deg-analysis node
+# main.R — Single entry point for differential-analysis node
 #
 # Usage:
 #   Rscript scripts/main.R run --mat expr.csv --map groups.csv --outdir ./output
@@ -2256,6 +2263,7 @@ NDJSON reporting throughout.
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 6: SKILL.md Contract
@@ -2271,8 +2279,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - [x] **Step 1: Write SKILL.md**
 
 ```markdown
+archived-with: 2026-06-22-create-node-package
 ---
-name: deg-analysis
+name: differential-analysis
 description: >
   Differential expression analysis comparing case vs control groups
   from a gene expression matrix. Supports DESeq2, limma, edgeR,
@@ -2486,9 +2495,10 @@ hardware:
   cpu: 2
   gpu: false
   runtime: "~2-10 minutes depending on method and matrix size"
+archived-with: 2026-06-22-create-node-package
 ---
 
-# deg-analysis
+# differential-analysis
 
 ## Node Function
 
@@ -2596,7 +2606,7 @@ cat("SKILL.md frontmatter OK: name=", fm$name, ", params=", length(fm$parameters
 '
 ```
 
-Expected stdout: `SKILL.md frontmatter OK: name=deg-analysis, params=20, exceptions=13`
+Expected stdout: `SKILL.md frontmatter OK: name=differential-analysis, params=20, exceptions=13`
 
 - [x] **Step 3: Commit SKILL.md**
 
@@ -2614,6 +2624,7 @@ Exceptions (plain-language), Usage Examples.
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 7: Test Suite
@@ -2633,7 +2644,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - [x] **Step 1: Write tests/testthat/test-input-validation.R**
 
 ```r
-# test-input-validation.R — Input validation tests for deg-analysis
+# test-input-validation.R — Input validation tests for differential-analysis
 
 library(testthat)
 
@@ -2739,7 +2750,7 @@ Expected stdout: `All input validation tests passed` (all test_that blocks pass)
 - [x] **Step 3: Write tests/testthat/test-output-validation.R**
 
 ```r
-# test-output-validation.R — Output validation tests for deg-analysis
+# test-output-validation.R — Output validation tests for differential-analysis
 
 library(testthat)
 
@@ -2814,7 +2825,7 @@ Expected stdout: `All output validation tests passed`
 - [x] **Step 5: Write tests/testthat/test-diff-methods.R**
 
 ```r
-# test-diff-methods.R — DE method output tests for deg-analysis
+# test-diff-methods.R — DE method output tests for differential-analysis
 
 library(testthat)
 
@@ -2937,7 +2948,7 @@ Expected stdout: `All diff methods tests passed`
 - [x] **Step 7: Write tests/testthat/test-main.R**
 
 ```r
-# test-main.R — Dispatch, parsing, and end-to-end tests for deg-analysis
+# test-main.R — Dispatch, parsing, and end-to-end tests for differential-analysis
 
 library(testthat)
 
@@ -3070,7 +3081,7 @@ test_that("end-to-end pipeline runs with synthetic data", {
 
   # Verify .run_result.json
   rr <- jsonlite::fromJSON(file.path(outdir, ".run_result.json"))
-  expect_equal(rr$node, "deg-analysis")
+  expect_equal(rr$node, "differential-analysis")
   expect_equal(rr$exit_code, 0)
 
   unlink(outdir, recursive = TRUE)
@@ -3103,6 +3114,7 @@ test-main.R: arg parsing (both forms), dispatch, E2E pipeline with synthetic dat
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Task 8: Integration Verification
@@ -3167,7 +3179,7 @@ Expected: `Diffanalysis.csv`, `DEGs.csv`, `Volcano.pdf`, `Heatmap.pdf`, `.run_re
 ```bash
 ./env/bin/Rscript -e '
 rr <- jsonlite::fromJSON("/tmp/deg_e2e_output/.run_result.json")
-stopifnot(rr$node == "deg-analysis")
+stopifnot(rr$node == "differential-analysis")
 stopifnot(rr$subcommand == "run")
 stopifnot(rr$exit_code == 0)
 stopifnot(!is.null(rr$parameters))
@@ -3176,7 +3188,7 @@ cat(".run_result.json OK: node=", rr$node, ", exit=", rr$exit_code, ", files=", 
 '
 ```
 
-Expected stdout: `.run_result.json OK: node=deg-analysis, exit=0, files=4`
+Expected stdout: `.run_result.json OK: node=differential-analysis, exit=0, files=4`
 
 ### 8.3 Verify SKILL.md frontmatter
 
@@ -3218,6 +3230,7 @@ Expected: All 9 checks PASS.
 
 No code changes at this stage — verification is read-only. If any issues were found, iterate on the failing task's code.
 
+archived-with: 2026-06-22-create-node-package
 ---
 
 ## Verification Checklist

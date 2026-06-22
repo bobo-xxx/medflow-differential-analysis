@@ -1,4 +1,4 @@
-# filter_helpers.R — Proportion check, cutoff testing, DEG filtering for deg-analysis
+# filter_helpers.R — Proportion check, cutoff testing, DEG filtering for differential-analysis
 #
 # All functions report exceptions via report_exception_ndjson() when thresholds
 # are violated, using the structured exception codes from the design doc.

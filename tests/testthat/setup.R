@@ -1,4 +1,4 @@
-# setup.R — Synthetic test fixtures for deg-analysis tests
+# setup.R — Synthetic test fixtures for differential-analysis tests
 #
 # Provides create_test_data() which returns a list with:
 #   $mat  — 10-gene x 6-sample count matrix (3 case, 3 control)
