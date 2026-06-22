@@ -4,3 +4,22 @@ channels:
 dependencies:
   - r-base=4.3
   - r-essentials
+  - bioconductor-deseq2
+  - bioconductor-limma
+  - bioconductor-edger
+  - r-statmod
+  - r-ggplot2
+  - r-ggrepel
+  - r-ggvenn
+  - r-rcircos
+  - r-pheatmap
+  - r-dplyr
+  - r-data.table
+  - r-jsonlite
+  - r-yaml
+  - r-filelock
+  - r-testthat
+  - r-r.utils
+
+# Fallback if conda resolution fails for ggvenn or RCircos:
+#   install.packages(c("ggvenn", "RCircos"), repos = "https://cloud.r-project.org")
