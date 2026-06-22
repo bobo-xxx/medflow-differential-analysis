@@ -68,6 +68,9 @@ report_exception_ndjson <- function(code, nature, action, msg,
   )
   cat(jsonlite::toJSON(obj, auto_unbox = TRUE), "\n", sep = "")
 
+  # Echo pattern to stderr for framework exception matching
+  cat(paste0(code, ": ", msg), "\n", file = stderr())
+
   # Accumulate for .run_result.json
   .exceptions <<- c(.exceptions, list(obj))
 
