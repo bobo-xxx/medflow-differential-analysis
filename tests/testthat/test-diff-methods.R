@@ -249,3 +249,18 @@ test_that("diff_edger() accepts different model methods", {
   expect_s3_class(dif_glmfit, "data.frame")
   expect_s3_class(dif_glmqlt, "data.frame")
 })
+
+test_that("diff_edger() glmQLFit and glmFit produce different p-values", {
+  source("../../scripts/diff_methods.R")
+
+  dif_glmfit <- diff_edger(td$mat, map, model = "glmFit")
+  dif_glmqlt <- diff_edger(td$mat, map, model = "glmQLFit")
+
+  # The two models use different test functions (glmLRT vs glmQLFTest)
+  # and should produce different Pvalues and Padj
+  merged <- merge(dif_glmfit, dif_glmqlt, by = "gene_id",
+                  suffixes = c("_fit", "_qlt"))
+  # At least some genes should have different Pvalues
+  pvalue_diff <- sum(abs(merged$Pvalue_fit - merged$Pvalue_qlt) > 1e-6)
+  expect_gt(pvalue_diff, 0)
+})

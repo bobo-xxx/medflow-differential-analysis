@@ -7,21 +7,16 @@ suppressPackageStartupMessages(library(dplyr))
 
 #' Check sample proportion ratio
 #'
-#' Ensures the ratio of larger group to smaller group does not exceed 10:1
-#' unless force_imbalanced is TRUE. Emits B1_PROPORTION exception on violation.
+#' Pure predicate: returns TRUE if the check passes, FALSE otherwise.
+#' Does NOT emit exceptions — callers are responsible for reporting
+#' the appropriate exception code based on the failure reason.
 #'
 #' @param map Data frame with sample-to-group mapping (col 2 = group)
-#' @param force_imbalanced Logical, if TRUE bypass the check
+#' @param force_imbalanced Logical, if TRUE bypass the proportion check
 #' @return Logical TRUE if proportion is acceptable (or forced)
 proportion_check <- function(map, force_imbalanced = FALSE) {
   counts <- table(map[[2]])
   if (length(counts) != 2) {
-    report_exception_ndjson(
-      "B9_SAMPLE_MISMATCH", "data_corrupt", "halt",
-      sprintf("Expected exactly 2 groups, found %d: %s",
-              length(counts), paste(names(counts), collapse = ", ")),
-      exit_code = 1
-    )
     return(FALSE)
   }
 
@@ -30,14 +25,6 @@ proportion_check <- function(map, force_imbalanced = FALSE) {
   ratio <- max(c_num, t_num) / min(c_num, t_num)
 
   if (ratio > 10 && !force_imbalanced) {
-    g1 <- names(counts)[1]
-    g2 <- names(counts)[2]
-    report_exception_ndjson(
-      "B1_PROPORTION", "data_insufficient", "skip_with_warning",
-      sprintf("Sample proportion %s (%d samples) vs %s (%d samples), ratio %.1f:1 exceeds 10:1 limit",
-              g1, c_num, g2, t_num, ratio),
-      exit_code = 1
-    )
     return(FALSE)
   }
   TRUE

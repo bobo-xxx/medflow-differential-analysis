@@ -54,7 +54,7 @@ test_that("proportion_check() returns TRUE for moderately imbalanced design (4 v
   expect_true(proportion_check(map))
 })
 
-test_that("proportion_check() reports B1_PROPORTION for ratio > 10:1", {
+test_that("proportion_check() returns FALSE for ratio > 10:1", {
   source("../../scripts/filter_helpers.R")
 
   # 11 control, 1 case — ratio 11:1 exceeds limit
@@ -64,10 +64,7 @@ test_that("proportion_check() reports B1_PROPORTION for ratio > 10:1", {
                    levels = c("Control", "Case")),
     stringsAsFactors = FALSE
   )
-  out <- capture.output(res <- proportion_check(map))
-  expect_false(res)
-  # Should have emitted exception NDJSON
-  expect_true(any(grepl("B1_PROPORTION", out)))
+  expect_false(proportion_check(map))
 })
 
 test_that("proportion_check() bypasses check when force_imbalanced=TRUE", {

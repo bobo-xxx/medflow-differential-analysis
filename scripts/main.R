@@ -181,6 +181,18 @@ parse_args <- function(args = commandArgs(trailingOnly = TRUE)) {
     NULL
   }
 
+  # Validate choice parameters
+  valid_methods <- c("deseq2", "limma", "edgeR", "t", "wilcox")
+  if (!opts$method %in% valid_methods) {
+    report_error(sprintf("Invalid --method '%s'. Valid: %s",
+      opts$method, paste(valid_methods, collapse = ", ")))
+  }
+  valid_p_sets <- c("p", "padj")
+  if (!opts$p_set %in% valid_p_sets) {
+    report_error(sprintf("Invalid --p-set '%s'. Valid: %s",
+      opts$p_set, paste(valid_p_sets, collapse = ", ")))
+  }
+
   return(opts)
 }
 
@@ -202,6 +214,37 @@ type_convert <- function(val, opt_name) {
 # -------------------------------------------------------------------
 # Subcommand: run
 # -------------------------------------------------------------------
+
+#' Detect write error type and emit appropriate W-code exception
+#'
+#' Inspects the error message for disk-full or permission-denied
+#' patterns and emits W001_DISK_FULL or W002_PERM_DENIED accordingly.
+#' Calls quit(1) after emission (action: halt).
+#'
+#' @param err_msg Character error message from tryCatch
+#' @param file_path Character path that was being written to
+emit_write_exception <- function(err_msg, file_path) {
+  if (grepl("disk full|no space|quota exceeded|cannot allocate",
+            err_msg, ignore.case = TRUE)) {
+    report_exception_ndjson(
+      "W001_DISK_FULL", "resource", "halt",
+      sprintf("Disk full or no space left on device while writing %s: %s",
+              file_path, err_msg),
+      exit_code = 1
+    )
+  } else if (grepl("permission denied|access denied|read.only",
+                   err_msg, ignore.case = TRUE)) {
+    report_exception_ndjson(
+      "W002_PERM_DENIED", "resource", "halt",
+      sprintf("Permission denied while writing %s: %s",
+              file_path, err_msg),
+      exit_code = 1
+    )
+  } else {
+    # Re-throw unrecognized write errors
+    stop(err_msg)
+  }
+}
 
 #' Run the full DEG analysis pipeline
 #'
@@ -235,7 +278,29 @@ do_run <- function(opts) {
   # Proportion check
   report_info("Checking sample proportion...")
   if (!proportion_check(map, opts$force_imbalanced)) {
-    # proportion_check already emitted the exception
+    # Determine failure reason and emit the appropriate exception
+    counts <- table(map[[2]])
+    if (length(counts) != 2) {
+      report_exception_ndjson(
+        "B9_SAMPLE_MISMATCH", "data_corrupt", "halt",
+        sprintf("Expected exactly 2 groups, found %d: %s",
+                length(counts), paste(names(counts), collapse = ", ")),
+        exit_code = 1
+      )
+      return(invisible(list(status = "error",
+        msg = "Expected exactly 2 groups")))
+    }
+    c_num <- as.numeric(counts[1])
+    t_num <- as.numeric(counts[2])
+    ratio <- max(c_num, t_num) / min(c_num, t_num)
+    g1 <- names(counts)[1]
+    g2 <- names(counts)[2]
+    report_exception_ndjson(
+      "B1_PROPORTION", "data_insufficient", "skip_with_warning",
+      sprintf("Sample proportion %s (%d samples) vs %s (%d samples), ratio %.1f:1 exceeds 10:1 limit",
+              g1, c_num, g2, t_num, ratio),
+      exit_code = 1
+    )
     return(invisible(list(status = "error",
       msg = "Sample proportion check failed")))
   }
@@ -246,8 +311,13 @@ do_run <- function(opts) {
   # Method consistency check: count-based methods need integer data
   if (opts$method %in% c("deseq2", "edgeR")) {
     if (!all(mat == round(mat), na.rm = TRUE)) {
-      report_info("Converting float matrix to integer counts for count-based method")
-      mat <- round(mat)
+      report_exception_ndjson(
+        "B5_METHOD_MISMATCH", "data_mismatch", "halt",
+        sprintf("Method '%s' requires integer count data. Matrix contains non-integer values.", opts$method),
+        exit_code = 1
+      )
+      return(invisible(list(status = "error",
+        msg = "Method-data mismatch: count-based method requires integer data")))
     }
   }
 
@@ -299,31 +369,56 @@ do_run <- function(opts) {
 
   # Write Diffanalysis.csv (full results)
   diff_path <- file.path(opts$outdir, "Diffanalysis.csv")
-  write.csv(dif, diff_path, row.names = FALSE)
+  tryCatch(
+    write.csv(dif, diff_path, row.names = FALSE),
+    error = function(e) {
+      emit_write_exception(e$message, diff_path)
+    }
+  )
   report_info(sprintf("Full DE results written to %s (%d rows)",
     basename(diff_path), nrow(dif)))
 
   # Write DEGs.csv (filtered with group column)
   degs_path <- file.path(opts$outdir, "DEGs.csv")
-  write.csv(filt$degs, degs_path, row.names = FALSE)
+  tryCatch(
+    write.csv(filt$degs, degs_path, row.names = FALSE),
+    error = function(e) {
+      emit_write_exception(e$message, degs_path)
+    }
+  )
   report_info(sprintf("Filtered DEGs written to %s (%d rows)",
     basename(degs_path), nrow(filt$degs)))
 
   # Volcano plot
   volcano_path <- file.path(opts$outdir, "Volcano.pdf")
-  plot_volcano(dif, p_name, opts$pvalue, opts$logfc_cutoff,
-    opts$top, opts$gene, volcano_path)
+  tryCatch(
+    plot_volcano(dif, p_name, opts$pvalue, opts$logfc_cutoff,
+      opts$top, opts$gene, volcano_path),
+    error = function(e) {
+      emit_write_exception(e$message, volcano_path)
+    }
+  )
 
   # Heatmap
   heatmap_path <- file.path(opts$outdir, "Heatmap.pdf")
-  plot_heatmap(mat, map, filt$rdegs, opts$top, opts$color_heat, heatmap_path)
+  tryCatch(
+    plot_heatmap(mat, map, filt$rdegs, opts$top, opts$color_heat, heatmap_path),
+    error = function(e) {
+      emit_write_exception(e$message, heatmap_path)
+    }
+  )
 
   # Optional: Venn diagram
   if (!is.null(opts$rgs) && opts$rgs != "None" && file.exists(opts$rgs)) {
     if (!is.null(opts$pheno_abbr) && !is.null(opts$color_panel)) {
       venn_path <- file.path(opts$outdir, "Venn.pdf")
-      plot_venn(filt$degs, rgs_genes, opts$pheno_abbr,
-        opts$color_panel, venn_path)
+      tryCatch(
+        plot_venn(filt$degs, rgs_genes, opts$pheno_abbr,
+          opts$color_panel, venn_path),
+        error = function(e) {
+          emit_write_exception(e$message, venn_path)
+        }
+      )
     } else {
       report_info("Skipping Venn diagram: --pheno-abbr and --color-panel required")
     }
@@ -332,7 +427,12 @@ do_run <- function(opts) {
   # Optional: Chromosome location plot
   if (!is.null(opts$locate) && opts$locate != "None" && file.exists(opts$locate)) {
     locate_path <- file.path(opts$outdir, "Chromosome_location.pdf")
-    plot_locate(filt$degs[[1]], opts$locate, opts$tax_id, locate_path)
+    tryCatch(
+      plot_locate(filt$degs[[1]], opts$locate, opts$tax_id, locate_path),
+      error = function(e) {
+        emit_write_exception(e$message, locate_path)
+      }
+    )
   }
 
   # Build output file list
@@ -381,9 +481,10 @@ do_validate_input <- function(opts) {
   result <- validate_input(opts)
   if (!result$valid) {
     report_exception_ndjson(
-      if (grepl("not found", result$reason)) "B3_MISSING_INPUT"
-      else if (grepl("column|empty", result$reason)) "B4_INVALID_COLUMNS"
+      if (grepl("not found|Cannot read", result$reason)) "B3_MISSING_INPUT"
+      else if (grepl("column|empty|Expected exactly 2 groups", result$reason)) "B4_INVALID_COLUMNS"
       else if (grepl("proportion", result$reason)) "B1_PROPORTION"
+      else if (grepl("Sample.*in (map|matrix)", result$reason)) "B9_SAMPLE_MISMATCH"
       else "B9_SAMPLE_MISMATCH",
       "data_corrupt", "halt",
       result$reason

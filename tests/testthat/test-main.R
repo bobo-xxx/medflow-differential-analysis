@@ -448,6 +448,102 @@ test_that("end-to-end pipeline runs with synthetic data", {
 })
 
 # ---------------------------------------------------------------------------
+# B5_METHOD_MISMATCH: count-based methods reject non-integer data
+# ---------------------------------------------------------------------------
+test_that("do_run() emits B5_METHOD_MISMATCH for float data with deseq2/edgeR", {
+  source("../../scripts/report.R")
+  source("../../scripts/exceptions.R")
+  source("../../scripts/io_helpers.R")
+  source("../../scripts/diff_methods.R")
+  source("../../scripts/filter_helpers.R")
+  source("../../scripts/plot_helpers.R")
+  source("../../scripts/input_validation.R")
+  source("../../scripts/output_validation.R")
+  source("../../scripts/main.R")
+
+  # Mock quit to avoid terminating the test process
+  real_quit <- quit
+  assign("quit", function(status = 1, ...) {
+    assign("quit_called_with", status, envir = .GlobalEnv)
+  }, envir = .GlobalEnv)
+  on.exit(assign("quit", real_quit, envir = .GlobalEnv))
+
+  source("../../tests/testthat/setup.R")
+  td <- create_test_data()
+  outdir <- file.path(tempdir(), "deg_b5_test")
+  if (dir.exists(outdir)) unlink(outdir, recursive = TRUE)
+  dir.create(outdir, showWarnings = FALSE)
+
+  # Create a float (non-integer) expression matrix
+  float_mat <- td$mat * 1.5  # makes values non-integer
+  float_mat_path <- file.path(tempdir(), "float_expr.csv")
+  write.csv(float_mat, float_mat_path)
+
+  out <- capture.output({
+    result <- do_run(list(
+      subcommand = "run",
+      mat = float_mat_path,
+      map = td$map_path,
+      method = "deseq2",
+      p_set = "padj",
+      pvalue = 0.05,
+      logfc_cutoff = 1.0,
+      cutoff = 10,
+      norm = "TMM",
+      model = "glmFit",
+      top = 20,
+      force_imbalanced = FALSE,
+      rgs = NULL,
+      locate = NULL,
+      tax_id = "9606",
+      pheno_abbr = NULL,
+      gene = NULL,
+      color_heat = "blue,white,red",
+      color_panel = NULL,
+      outdir = outdir
+    ))
+  })
+
+  # Should have emitted B5_METHOD_MISMATCH NDJSON
+  has_b5 <- any(grepl("B5_METHOD_MISMATCH", out))
+  expect_true(has_b5)
+
+  # Also test edgeR with float data
+  out2 <- capture.output({
+    result2 <- do_run(list(
+      subcommand = "run",
+      mat = float_mat_path,
+      map = td$map_path,
+      method = "edgeR",
+      p_set = "padj",
+      pvalue = 0.05,
+      logfc_cutoff = 1.0,
+      cutoff = 10,
+      norm = "TMM",
+      model = "glmFit",
+      top = 20,
+      force_imbalanced = FALSE,
+      rgs = NULL,
+      locate = NULL,
+      tax_id = "9606",
+      pheno_abbr = NULL,
+      gene = NULL,
+      color_heat = "blue,white,red",
+      color_panel = NULL,
+      outdir = outdir
+    ))
+  })
+  has_b5_edgeR <- any(grepl("B5_METHOD_MISMATCH", out2))
+  expect_true(has_b5_edgeR)
+
+  unlink(outdir, recursive = TRUE)
+  unlink(float_mat_path)
+  if (exists("quit_called_with", envir = .GlobalEnv)) {
+    rm(quit_called_with, envir = .GlobalEnv)
+  }
+})
+
+# ---------------------------------------------------------------------------
 # Clean up
 # ---------------------------------------------------------------------------
 assign(".exceptions", list(), envir = .GlobalEnv)

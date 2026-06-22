@@ -103,7 +103,11 @@ diff_edger <- function(df, map, norm = "TMM", model = "glmFit") {
 
   func <- get(model)
   fit <- func(dge, design, robust = TRUE)
-  lrt <- topTags(glmLRT(fit), n = nrow(dgelist$counts))
+  if (model == "glmQLFit") {
+    lrt <- topTags(glmQLFTest(fit), n = nrow(dgelist$counts))
+  } else {
+    lrt <- topTags(glmLRT(fit), n = nrow(dgelist$counts))
+  }
 
   dif <- lrt %>%
     as.data.frame() %>%
