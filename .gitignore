@@ -11,5 +11,14 @@ __pycache__/
 # OS
 .DS_Store
 
-# Claude local
+# Conda environment — reproducible from envs/env-r-4.3.yaml
+env/
+
+# Comet cache
+.comet/
+
+# File locks
+*.lock
+
+# Claude local overrides (secrets, permissions)
 .claude/settings.local.json
