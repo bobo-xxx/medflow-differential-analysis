@@ -323,13 +323,29 @@ do_run <- function(opts) {
 
   # Run DE analysis
   report_info(sprintf("Running %s differential expression...", opts$method))
-  dif <- switch(opts$method,
-    deseq2 = diff_deseq2(mat, map),
-    limma  = diff_limma(mat, map),
-    edgeR  = diff_edger(mat, map, norm = opts$norm, model = opts$model),
-    t      = diff_stat(mat, map, "t"),
-    wilcox = diff_stat(mat, map, "wilcox")
+  dif <- tryCatch(
+    switch(opts$method,
+      deseq2 = diff_deseq2(mat, map),
+      limma  = diff_limma(mat, map),
+      edgeR  = diff_edger(mat, map, norm = opts$norm, model = opts$model),
+      t      = diff_stat(mat, map, "t"),
+      wilcox = diff_stat(mat, map, "wilcox")
+    ),
+    error = function(e) {
+      msg <- sprintf("DE analysis failed (%s): %s", opts$method, e$message)
+      report_exception_ndjson("B5_METHOD_MISMATCH", "data_mismatch", "halt",
+        msg, exit_code = 1)
+      return(NULL)
+    }
   )
+  if (is.null(dif)) {
+    write_run_result(opts$outdir,
+      list(status = "error", msg = "DE analysis failed"),
+      opts, 1,
+      c(started_at, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")))
+    return(invisible(list(status = "error",
+      msg = "DE analysis failed")))
+  }
 
   # Determine p-value column name
   p_name <- ifelse(opts$p_set == "p", "Pvalue", "Padj")
@@ -519,6 +535,9 @@ do_validate_output <- function(opts) {
 
 main <- function() {
   started_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
+
+  # Reset exception accumulator to prevent state leakage between consecutive calls
+  assign(".exceptions", list(), envir = .GlobalEnv)
 
   opts <- parse_args()
 
