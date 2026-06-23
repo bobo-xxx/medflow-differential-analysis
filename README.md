@@ -59,4 +59,4 @@ Implementation logic adapted from `original/scripts/`:
 
 ## License
 
-MIT
+Apache 2.0
