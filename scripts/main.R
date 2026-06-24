@@ -58,7 +58,7 @@ parse_args <- function(args = commandArgs(trailingOnly = TRUE)) {
     cat("\nRun options:\n")
     cat("  --mat FILE           Expression matrix CSV (genes x samples)\n")
     cat("  --map FILE           Sample-to-group mapping CSV\n")
-    cat("  --method METHOD      DE method: deseq2, limma, edgeR, t, wilcox (default: deseq2)\n")
+    cat("  --method METHOD      DE method: deseq2, limma, edgeR, t, wilcox (default: auto-detect)\n")
     cat("  --p-set P            P-value type: p or padj (default: padj)\n")
     cat("  --pvalue FLOAT       P-value threshold (default: 0.05)\n")
     cat("  --logfc-cutoff FLOAT Log2 fold-change cutoff (default: 1.0)\n")
@@ -90,6 +90,7 @@ parse_args <- function(args = commandArgs(trailingOnly = TRUE)) {
     mat               = NULL,
     map               = NULL,
     method            = "deseq2",
+    method_explicit   = FALSE,
     p_set             = "padj",
     pvalue            = 0.05,
     logfc_cutoff      = 1.0,
@@ -140,6 +141,7 @@ parse_args <- function(args = commandArgs(trailingOnly = TRUE)) {
       if (startsWith(key, paste0(flag, "="))) {
         val <- sub(paste0("^", flag, "="), "", key)
         opts[[opt_name]] <- type_convert(val, opt_name)
+        if (flag == "--method") opts$method_explicit <- TRUE
         found <- TRUE
         break
       }
@@ -149,6 +151,7 @@ parse_args <- function(args = commandArgs(trailingOnly = TRUE)) {
         i <- i + 1
         if (i <= length(remaining)) {
           opts[[opt_name]] <- type_convert(remaining[i], opt_name)
+          if (flag == "--method") opts$method_explicit <- TRUE
         }
         found <- TRUE
         break
@@ -307,6 +310,19 @@ do_run <- function(opts) {
 
   # Subset matrix to map samples
   mat <- mat[, map[[1]], drop = FALSE]
+
+  # Auto-detect data type and adjust default method if needed
+  is_count_like <- all(mat >= 0, na.rm = TRUE) &&
+    all(abs(mat - round(mat)) < 1e-6, na.rm = TRUE) &&
+    max(mat, na.rm = TRUE) > 50
+
+  if (!opts$method_explicit && opts$method %in% c("deseq2", "edgeR") &&
+      !is_count_like) {
+    report_info(sprintf(
+      "Data appears to be normalized/log-transformed (non-integer or low-range). Auto-switching method from '%s' to 'limma'.",
+      opts$method))
+    opts$method <- "limma"
+  }
 
   # Method consistency check: count-based methods need integer data
   if (opts$method %in% c("deseq2", "edgeR")) {

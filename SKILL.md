@@ -59,9 +59,12 @@ parameters:
   - name: --method
     type: choice
     required: false
-    default: deseq2
+    default: auto
     bind: config
-    description: DE analysis method (deseq2, limma, edgeR, t, wilcox)
+    description: >
+      DE analysis method (deseq2, limma, edgeR, t, wilcox).
+      Default auto-detects: integer count data → deseq2, normalized/log-transformed → limma.
+      Explicitly passing --method bypasses auto-detection.
   - name: --p-set
     type: choice
     required: false
