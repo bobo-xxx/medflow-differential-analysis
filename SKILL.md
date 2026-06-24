@@ -50,12 +50,18 @@ parameters:
     type: file
     required: true
     bind: upstream
-    description: Expression matrix CSV (genes x samples) with gene identifiers in first column
+    description: >
+      Expression matrix CSV (genes x samples) with gene identifiers in first column.
+      When a directory is provided, resolve: prefer "merged_expression.csv",
+      fallback to first .csv matching 'expression' or 'gene'.
   - name: --map
     type: file
     required: true
     bind: upstream
-    description: Sample-to-group mapping CSV (sample_id, group)
+    description: >
+      Sample-to-group mapping CSV (sample_id, group).
+      When a directory is provided, resolve: prefer "sample_group_map.csv",
+      fallback to first .csv matching 'metadata' or 'sample'.
   - name: --method
     type: choice
     required: false
